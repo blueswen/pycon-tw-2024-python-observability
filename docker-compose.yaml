@@ -1,0 +1,155 @@
+x-logging: &default-logging
+  driver: loki
+  options:
+    loki-url: 'http://localhost:3100/api/prom/push'
+    loki-pipeline-stages: |
+      - multiline:
+          firstline: '^\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2}'
+          max_wait_time: 3s
+      - regex:
+          expression: '^(?P<time>\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2},d{3}) (?P<message>(?s:.*))$$'
+
+services:
+  app-a:
+    image: ghcr.io/blueswen/pycon-tw-2024-python-observability/app:latest
+    ports:
+      - "8000:8000"
+    depends_on:
+      - loki
+      - postgres
+    logging: *default-logging
+    environment:
+      - TARGET_ONE_SVC=app-b:8000
+      - TARGET_TWO_SVC=app-c:8000
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_SERVER=postgres
+      - REDIS_SERVER=redis
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_PYTHON_EXCLUDED_URLS=/metrics
+      - OTEL_SERVICE_NAME=app-a
+      - CODE_BASED_INSTRUMENTATION=true
+      - APP_NAME=app-a
+      - TIME_BOMB=true
+    command: python main.py
+
+  app-b:
+    image: ghcr.io/blueswen/pycon-tw-2024-python-observability/app:latest
+    ports:
+      - "8001:8000"
+    depends_on:
+      - loki
+      - postgres
+    logging: *default-logging
+    environment:
+      - TARGET_ONE_SVC=app-c:8000
+      - TARGET_TWO_SVC=app-a:8000
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_SERVER=postgres
+      - REDIS_SERVER=redis
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_PYTHON_EXCLUDED_URLS=/metrics
+      - OTEL_SERVICE_NAME=app-b
+      - CODE_BASED_INSTRUMENTATION=true
+      - APP_NAME=app-b
+    command: python main.py
+    
+  app-c:
+    image: ghcr.io/blueswen/pycon-tw-2024-python-observability/app:latest
+    ports:
+      - "8002:8000"
+    depends_on:
+      - loki
+      - postgres
+    logging: *default-logging
+    environment:
+      - TARGET_ONE_SVC=app-a:8000
+      - TARGET_TWO_SVC=app-b:8000
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_SERVER=postgres
+      - REDIS_SERVER=redis
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_PYTHON_EXCLUDED_URLS=/metrics
+      - OTEL_SERVICE_NAME=app-c
+      - CODE_BASED_INSTRUMENTATION=true
+      - APP_NAME=app-c
+    command: python main.py
+
+  basic:
+    image: ghcr.io/blueswen/pycon-tw-2024-python-observability/app:latest
+    ports:
+      - "8080:8000"
+    depends_on:
+      - loki
+    logging: *default-logging
+    environment:
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_SERVICE_NAME=basic
+    command: opentelemetry-instrument python basic.py
+  
+  postgres:
+    image: postgres:16.4
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+  
+  redis:
+    image: redis:7.4
+    ports:
+      - "6379:6379"
+  
+  grafana:
+    image: grafana/grafana:11.2.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./etc/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./etc/grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./etc/grafana/dashboards:/etc/grafana/dashboards
+
+  loki:
+    image: grafana/loki:3.1.1
+    ports:
+      - "3100:3100"
+
+  prometheus:
+    image: prom/prometheus:v2.54.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./etc/prometheus.yml:/etc/prometheus/prometheus.yml
+    command: --config.file=/etc/prometheus/prometheus.yml --enable-feature=exemplar-storage
+
+  tempo:
+    image: grafana/tempo:2.5.0
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    command: [ "--target=all", "--storage.trace.backend=local", "--storage.trace.local.path=/var/tempo", "--auth.enabled=false" ]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    ports:
+      - 8081:8080
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro

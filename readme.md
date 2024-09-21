@@ -1,8 +1,14 @@
 # 全方位強化 Python 服務可觀測性：以 FastAPI 和 Grafana Stack 為例
 
-此 Project 為 PyCon TW 2024 [全方位強化 Python 服務可觀測性：以 FastAPI 和 Grafana Stack 為例](https://tw.pycon.org/2024/zh-hant/conference/talk/320) 的範例程式碼。
+此 Project 為 PyCon TW 2024 「[全方位強化 Python 服務可觀測性：以 FastAPI 和 Grafana Stack 為例](https://tw.pycon.org/2024/zh-hant/conference/talk/320)」 分享所使用的範例程式碼。
 
-Slide：[全方位強化 Python 服務可觀測性：以 FastAPI 和 Grafana Stack 為例]()
+Slide：[全方位強化 Python 服務可觀測性：以 FastAPI 和 Grafana Stack 為例](https://speakerdeck.com/blueswen/quan-fang-wei-qiang-hua-python-fu-wu-ke-guan-ce-xing-yi-fastapi-he-grafana-stack-wei-li)
+
+想了解更多可觀測性的資訊，可以參考：
+
+1. 可觀測性介紹書籍：[可觀測性入門指南：Logs、Metrics、Traces 三大實戰應用](https://www.tenlong.com.tw/products/9786263339538)
+2. iThome 鐵人賽可觀測性系列文章：[時光之鏡：透視過去、現在與未來的 Observability](https://ithelp.ithome.com.tw/users/20162175/ironman/6445)
+3. Observability 實作範例：[FastAPI with Observability](https://github.com/blueswen/fastapi-observability)
 
 ## Architecture
 

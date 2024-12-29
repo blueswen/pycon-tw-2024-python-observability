@@ -50,7 +50,7 @@ docker-compose up -d
    2. with [k6](https://k6.io/), [installation guide](https://grafana.com/docs/k6/latest/set-up/install-k6/)
 
         ```bash
-        k6 run --vus 10 --duration 300s k6-script.js
+        k6 run --vus 3 --duration 300s k6-script.js
         k6 run --vus 3 --duration 30s k6-script-todo.js
         ```
 

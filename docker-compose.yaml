@@ -10,13 +10,32 @@ x-logging: &default-logging
           expression: '^(?P<time>\d{4}-\d{2}-\d{2} \d{1,2}:\d{2}:\d{2},d{3}) (?P<message>(?s:.*))$$'
 
 services:
+  basic:
+    image: ghcr.io/blueswen/pycon-tw-2024-python-observability/app:latest
+    ports:
+      - "8080:8000"
+    depends_on:
+      loki:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    environment:
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_SERVICE_NAME=basic
+    command: opentelemetry-instrument python basic.py
+
   app-a:
     image: ghcr.io/blueswen/pycon-tw-2024-python-observability/app:latest
     ports:
       - "8000:8000"
     depends_on:
-      - loki
-      - postgres
+      loki:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     logging: *default-logging
     environment:
       - TARGET_ONE_SVC=app-b:8000
@@ -41,8 +60,10 @@ services:
     ports:
       - "8001:8000"
     depends_on:
-      - loki
-      - postgres
+      loki:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     logging: *default-logging
     environment:
       - TARGET_ONE_SVC=app-c:8000
@@ -66,8 +87,10 @@ services:
     ports:
       - "8002:8000"
     depends_on:
-      - loki
-      - postgres
+      loki:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     logging: *default-logging
     environment:
       - TARGET_ONE_SVC=app-a:8000
@@ -85,20 +108,6 @@ services:
       - CODE_BASED_INSTRUMENTATION=true
       - APP_NAME=app-c
     command: python main.py
-
-  basic:
-    image: ghcr.io/blueswen/pycon-tw-2024-python-observability/app:latest
-    ports:
-      - "8080:8000"
-    depends_on:
-      - loki
-    logging: *default-logging
-    environment:
-      - OTEL_TRACES_EXPORTER=otlp
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-      - OTEL_METRICS_EXPORTER=none
-      - OTEL_SERVICE_NAME=basic
-    command: opentelemetry-instrument python basic.py
   
   postgres:
     image: postgres:16.4
@@ -108,6 +117,11 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   
   redis:
     image: redis:7.4
@@ -115,7 +129,7 @@ services:
       - "6379:6379"
   
   grafana:
-    image: grafana/grafana:11.2.0
+    image: grafana/grafana:11.4.0
     ports:
       - "3000:3000"
     volumes:
@@ -124,12 +138,12 @@ services:
       - ./etc/grafana/dashboards:/etc/grafana/dashboards
 
   loki:
-    image: grafana/loki:3.1.1
+    image: grafana/loki:3.3.0
     ports:
       - "3100:3100"
 
   prometheus:
-    image: prom/prometheus:v2.54.0
+    image: prom/prometheus:v3.0.1
     ports:
       - "9090:9090"
     volumes:
@@ -137,14 +151,14 @@ services:
     command: --config.file=/etc/prometheus/prometheus.yml --enable-feature=exemplar-storage
 
   tempo:
-    image: grafana/tempo:2.5.0
+    image: grafana/tempo:2.6.1
     ports:
       - "4317:4317"
       - "4318:4318"
     command: [ "--target=all", "--storage.trace.backend=local", "--storage.trace.local.path=/var/tempo", "--auth.enabled=false" ]
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: gcr.io/cadvisor/cadvisor:v0.49.2
     ports:
       - 8081:8080
     privileged: true

@@ -4,7 +4,7 @@ RUN pip install uv
 
 WORKDIR /app
 COPY ./ ./
-RUN uv pip install --no-cache --system -r requirements.lock
+RUN uv pip install --no-cache --system -r requirements.txt
 
 EXPOSE 8000
 

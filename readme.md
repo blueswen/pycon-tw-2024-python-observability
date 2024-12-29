@@ -4,6 +4,10 @@
 
 Slide：[全方位強化 Python 服務可觀測性：以 FastAPI 和 Grafana Stack 為例](https://speakerdeck.com/blueswen/quan-fang-wei-qiang-hua-python-fu-wu-ke-guan-ce-xing-yi-fastapi-he-grafana-stack-wei-li)
 
+演講錄影：<https://youtu.be/y3sumuoDq4w>
+
+Demo 影片：<https://youtu.be/3Vvtqb3w5m0>
+
 想了解更多可觀測性的資訊，可以參考：
 
 1. 可觀測性介紹書籍：[可觀測性入門指南：Logs、Metrics、Traces 三大實戰應用](https://www.tenlong.com.tw/products/9786263339538)
